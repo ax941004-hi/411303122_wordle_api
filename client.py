@@ -8,6 +8,8 @@ API_BASE_URL = "https://four113033122-wordle.onrender.com"
 #API_BASE_URL = "http://127.0.0.1:8000"
 
 
+
+
 # 顏色定義
 COLOR_BG = (18, 18, 19)
 COLOR_TEXT = (255, 255, 255)
@@ -20,7 +22,7 @@ COLOR_LINE = (80, 80, 80)
 COLOR_HARD_MODE = (235, 175, 45)
 
 pygame.init()
-# 任務三：將視窗寬度從 500 擴大為 700
+# 任務三：視窗寬度從 500 擴大為 700
 WIDTH, HEIGHT = 700, 650
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Pygame Wordle + FastAPI Client")
@@ -42,7 +44,7 @@ class WordleGame:
         self.row = 0
         self.col = 0
         self.game_over = False
-        self.message = "Press ENTER to submit, H for Hard Mode"
+        self.message = "Press ENTER to submit, H (when empty) for Hard Mode"
         self.start_new_game()
 
     def start_new_game(self):
@@ -136,7 +138,7 @@ class WordleGame:
                     self.message = "Not in word list!"
                 else:
                     self.message = detail
-                # 任務二：不消耗猜測次數（self.row 不變，保留輸入以便 Backspace 修改）
+                # 任務二：不消耗猜測次數（self.row 不變，玩家可直接按 Backspace 編輯修改）
 
             else:
                 self.message = res.json().get("detail", "Error processing guess")
@@ -145,14 +147,19 @@ class WordleGame:
             self.message = "Network error during guess!"
 
     def handle_keydown(self, event):
-        # 1. 只有在遊戲結束時，按 R 鍵才會重開局
+        # 1. 遊戲結束時：按 R 重新開始，或按 H 切換模式
         if self.game_over:
             if event.key == pygame.K_r:
                 self.start_new_game()
-            return
+                return
+            elif event.key == pygame.K_h:
+                self.hard_mode = not self.hard_mode
+                self.start_new_game()
+                return
 
-        # 2. 任務四：按鍵 H 切換硬核模式開關並開新局
-        if event.key == pygame.K_h:
+        # 2. 任務四防呆機制：
+        # 只有在開局完全未輸入（第 0 行且第 0 格為空）時，按 H 才會切換模式
+        if event.key == pygame.K_h and self.row == 0 and self.col == 0:
             self.hard_mode = not self.hard_mode
             self.start_new_game()
             return
@@ -167,7 +174,7 @@ class WordleGame:
         elif event.key == pygame.K_RETURN:
             self.submit_guess()
 
-        # 5. 一般打字輸入字母（按 R 會正常作為字母輸入，不會觸發遊戲重置）
+        # 5. 一般打字輸入字母（包含 H、R 均可正常填入格子，不觸發重置）
         elif event.unicode.isalpha() and len(event.unicode) == 1:
             if self.col < 5:
                 self.grid[self.row][self.col] = event.unicode.upper()
@@ -213,7 +220,7 @@ class WordleGame:
         # 任務三：側邊欄分隔線 (x = 490)
         pygame.draw.line(surface, COLOR_LINE, (490, 20), (490, HEIGHT - 20), 2)
 
-        # 任務三：側邊欄上方即時勝率統計
+        # 任務三：側邊欄上方顯示即時勝率統計
         t = self.stats.get("total", 0)
         w = self.stats.get("wins", 0)
         r = self.stats.get("win_rate", 0)
@@ -221,7 +228,7 @@ class WordleGame:
         stats_surf = stats_font.render(stats_line, True, COLOR_TEXT)
         surface.blit(stats_surf, (505, 55))
 
-        # 任務三：側邊欄已猜單字歷史紀錄列表
+        # 任務三：側邊欄歷史紀錄列表
         title_surf = small_font.render("History Guesses", True, COLOR_TEXT_MUTED)
         surface.blit(title_surf, (510, 95))
 
@@ -250,3 +257,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
